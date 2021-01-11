@@ -16,7 +16,9 @@ score = stream.Stream()
 numNotes = 1
 # composers = []
 
-twitch.Chat(channel='#ezra0110', nickname='Ezra0110', oauth=OAUTH_TOKEN).subscribe(
+STREAMER_NAME="ezra0110"
+
+twitch.Chat(channel='#'+STREAMER_NAME, nickname=STREAMER_NAME, oauth=OAUTH_TOKEN).subscribe(
     lambda message: message_handler(message))
 
 def message_handler(message):
@@ -26,19 +28,42 @@ def message_handler(message):
     message_sender = message.sender
     print(message_sender, message_text)
     arr = message_text.split(',')
-    if message_text == "stop" and message_sender == "ezra0110":
-        # score.metadata.composer = "Ezra0110"
-        # for composer in composers:
-        #     score.metadata.composer = score.metadata.composer + ", " + composer
-        score.show()
-    elif len(arr) == 2:
-        note_name = arr[0]
-        #note_octave = arr[1]
-        note_duration = float(arr[1]) if re.match("^(\d*\.\d+|\d+\.\d*|\d+)$",arr[1]) else arr[1]
-        # add_composer(message_sender)
-        add_to_score(score, note_name, note_duration)# note_octave,)
-        
+    lastNote=None
+    # print(arr)
+    try:
+        if message_text == "stop" and message_sender == STREAMER_NAME:
+            # score.metadata.composer = "Ezra0110"
+            # for composer in composers:
+            #     score.metadata.composer = score.metadata.composer + ", " + composer
+            
+            score.show()
+        elif message_text == "reset" and message_sender == STREAMER_NAME:
+            score.clear()
+            score.write('musicxml.png', 'musicxml.png')
+        elif len(arr) == 2 and arr[0] != '' and arr[1] != '':
+            #lastNote=None
+            if arr[0] == "key" and re.match("^-?\d+$", arr[1]):
+                score.append(key.KeySignature(int(arr[1])))
+                score.write('musicxml.png', 'musicxml.png')
+            else:
 
+                if re.match("^[a-gA-G](#{0,3}|-{0,3})\d*$", arr[0]):
+                    note_name = arr[0]
+                else:
+                    raise Exception('Invalid Note Name!!!')
+                #note_octave = arr[1]
+                note_duration = float(arr[1]) if re.match("^(\d*\.\d+|\d+\.\d*|\d+)$",arr[1]) else arr[1]
+                # add_composer(message_sender)
+                lastNote = add_to_score(score, note_name, note_duration)# note_octave,)
+                score.write('musicxml.png', 'musicxml.png')
+    except Exception as e:
+        print(e)
+    #   print("yikes")
+        if lastNote != None:
+            stream=score.notesAndRests 
+            # last=stream.getElementById(stream.streamLength-1) 
+            score.remove(lastNote, shiftOffsets=True)
+        
 
 
 
@@ -48,9 +73,12 @@ def add_to_score(score, note_name, note_duration): # note_octave,
     numNotes += 1
     n = note.Note(note_name)# + note_octave)
     n.duration = duration.Duration(note_duration)
-    
-    print(n)
+    # print(n)
+    # print(n.name)
+    # print(n.duration)
+    last = n
     score.append(n)
+    return last
     
 # def add_composer(message_sender):
 #     global composers
